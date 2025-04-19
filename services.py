@@ -24,6 +24,11 @@ class FlashcardService:
                 name="Web Search",
                 func=self.search_tool.run,
                 description="Useful for searching the web for information about a specific topic"
+            ),
+            Tool(
+                name="Length of an array",
+                func=len,
+                description="A helpful tool to calculate the length of an array"
             )
         ]
         
@@ -67,10 +72,10 @@ class FlashcardService:
             # If all fails, raise an exception
             raise ValueError("Failed to extract valid JSON from LLM response")
     
-    def conduct_research(self, topic):
+    def conduct_research(self, topic, additional_notes=""):
         """Conduct research on a topic using the agent"""
         logger.info(f"Starting research on topic: {topic}")
-        research_result = self.agent_executor.invoke({"topic": topic})
+        research_result = self.agent_executor.invoke({"topic": topic, "additional_notes": additional_notes})
         research_output = research_result.get("output", "No information found")
         logger.info(f"Research complete. Output length: {len(research_output)}")
         return research_output

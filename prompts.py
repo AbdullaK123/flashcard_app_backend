@@ -28,9 +28,22 @@ Remember to generate exactly {count} question-answer pairs and ensure your outpu
 """)
 
 research_prompt = ChatPromptTemplate.from_template("""
-You are a research assistant tasked with finding information about {topic}.
+You are a research assistant tasked with finding information about {topic}, strictly in service of helping the user
+accomplish the following goal and nothing else:
+
+{additional_notes}
 
 Your goal is to gather comprehensive information about this topic that could be used to create educational flashcards.
+If it's a technical topic, related to an IT tool, then:
+                                                   
+Think about:
+1. Key definitions and core concepts
+2. Best practices when using it
+3. The architecture of its internals and how they create implementation nuances
+4. How you can help the user deeply understand everything 
+5. Potential technical interview questions
+                                                   
+Otherwise:
 
 Think about:
 1. Key definitions and concepts

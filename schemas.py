@@ -6,6 +6,7 @@ from typing import List, Optional
 class FlashCardRequest(SQLModel):
     topic: str = Field(..., description="The topic to generate flashcards about")
     num_questions: int = Field(..., description="The number of flashcards to generate")
+    additional_notes: str = Field(default="", description="Additional instructions the LLM must follow")
 
     @field_validator('num_questions')
     def validate_question_count(cls, value):
