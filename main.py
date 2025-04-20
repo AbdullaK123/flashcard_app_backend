@@ -13,9 +13,9 @@ def generate_flashcards(request: FlashCardRequest) -> FlashCardResponse:
     logger.info(f"Received request for topic: {request.topic}, num_questions: {request.num_questions}, additional_notes: {request.additional_notes}")
     return flashcard_service.generate_flashcards(
         request.topic, 
-        request.num_questions
+        request.num_questions,
+        request.additional_notes
     )
-
 
 if __name__ == "__main__":
     import uvicorn

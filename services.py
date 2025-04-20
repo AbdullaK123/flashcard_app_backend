@@ -4,7 +4,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_openai import ChatOpenAI
 from schemas import FlashCardPair, FlashCardResponse
 from prompts import research_prompt, flashcard_generation_prompt
-from utils import logger
+from utils import logger, safe_research, safe_json_extraction, ensure_card_count
 import json
 import re
 from dotenv import load_dotenv
@@ -33,8 +33,7 @@ class FlashcardService:
         ]
         
         self.llm = ChatOpenAI(
-            model='gpt-4o',
-            temperature=0.0
+            model='o3-mini-2025-01-31'
         )
         
         # Set up prompts
@@ -51,39 +50,26 @@ class FlashcardService:
             handle_parsing_errors=True
         )
     
+    @safe_json_extraction
     def extract_json_from_response(self, content):
-        """Extract JSON from LLM response, handling common formatting issues"""
-        logger.info(f"LLM response received. Content length: {len(content)}")
-        logger.info(f"Response preview: {content[:200]}...")
-        
-        # Try direct JSON parsing
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            logger.info("Direct JSON parsing failed, trying regex extraction")
-            
-            # Try regex to extract JSON array
-            json_match = re.search(r'\[(.*?)\]', content, re.DOTALL)
-            if json_match:
-                cards_json = json_match.group(0)
-                logger.info(f"JSON match found. Length: {len(cards_json)}")
-                return json.loads(cards_json)
-            
-            # If all fails, raise an exception
-            raise ValueError("Failed to extract valid JSON from LLM response")
+        """Extract JSON from LLM response"""
+        # Direct JSON parsing - safe_json_extraction decorator handles errors
+        return json.loads(content) 
     
+    @safe_research
     def conduct_research(self, topic, additional_notes=""):
         """Conduct research on a topic using the agent"""
         logger.info(f"Starting research on topic: {topic}")
         research_result = self.agent_executor.invoke({"topic": topic, "additional_notes": additional_notes})
-        research_output = research_result.get("output", "No information found")
+        research_output = research_result.get("output", "")
         logger.info(f"Research complete. Output length: {len(research_output)}")
         return research_output
     
-    def generate_flashcards(self, topic, num_questions):
+    @ensure_card_count
+    def generate_flashcards(self, topic, num_questions, additional_notes=""):
         """Generate flashcards based on research"""
         # First, research the topic
-        research_output = self.conduct_research(topic)
+        research_output = self.conduct_research(topic, additional_notes)
         
         # Generate flashcards using the research output
         logger.info("Generating flashcards...")
@@ -98,11 +84,7 @@ class FlashcardService:
         # Extract and process the cards
         cards = self.extract_json_from_response(flashcard_result.content)
         
-        # Ensure we have exactly the requested number of cards
-        if len(cards) > num_questions:
-            cards = cards[:num_questions]
-            
-        # Create flashcard pairs
+        # Create flashcard pairs - ensure_card_count decorator handles missing cards
         flashcard_pairs = [
             FlashCardPair(question=card["question"], answer=card["answer"])
             for card in cards
@@ -114,7 +96,7 @@ class FlashcardService:
         return FlashCardResponse(
             topic=topic,
             cards=flashcard_pairs,
-            source_info="Generated based on web search results"
+            source_info="Generated based on available information"
         )
     
 flashcard_service = FlashcardService(
